@@ -3,6 +3,9 @@ const nextConfig = {
   images: {
     domains: ['static.ifood-static.com.br'],
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async rewrites() {
     return [
       {

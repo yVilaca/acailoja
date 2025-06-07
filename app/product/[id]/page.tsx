@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { NextPage } from 'next'; // Importa o tipo NextPage
+import type { NextPage } from 'next';
 import { ChevronLeft, Star, Plus, Minus, ShoppingBag, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -32,23 +32,14 @@ const product = {
     'Produto 100% natural, sem conservantes. Contém glúten na granola. Alérgicos: pode conter traços de castanhas.',
 };
 
-// Usar NextPage para tipagem
 const ProductPage: NextPage<{ params: { id: string } }> = ({ params }) => {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const { addItem } = useCart();
 
-  const increaseQuantity = () => {
-    setQuantity((prev) => prev + 1);
-  };
-
-  const decreaseQuantity = () => {
-    if (quantity > 1) {
-      setQuantity((prev) => prev - 1);
-    }
-  };
-
+  const increaseQuantity = () => setQuantity((prev) => prev + 1);
+  const decreaseQuantity = () => quantity > 1 && setQuantity((prev) => prev - 1);
   const addToCart = () => {
     addItem(
       {
@@ -60,16 +51,11 @@ const ProductPage: NextPage<{ params: { id: string } }> = ({ params }) => {
       quantity,
     );
   };
-
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-  };
-
+  const toggleFavorite = () => setIsFavorite(!isFavorite);
   const discount = Math.round(((product.price - product.salePrice) / product.price) * 100);
 
   return (
     <main className="flex min-h-screen flex-col bg-white">
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <Link href="/">
@@ -81,9 +67,7 @@ const ProductPage: NextPage<{ params: { id: string } }> = ({ params }) => {
           </Button>
         </div>
       </header>
-
       <div className="flex-1">
-        {/* Imagens do produto */}
         <div className="relative bg-white">
           <div className="relative h-80 w-full">
             <Image
@@ -98,8 +82,6 @@ const ProductPage: NextPage<{ params: { id: string } }> = ({ params }) => {
               </div>
             )}
           </div>
-
-          {/* Miniaturas */}
           <div className="flex justify-center space-x-2 p-2">
             {product.images.map((image, index) => (
               <button
@@ -119,11 +101,8 @@ const ProductPage: NextPage<{ params: { id: string } }> = ({ params }) => {
             ))}
           </div>
         </div>
-
-        {/* Informações do produto */}
         <div className="p-4">
           <h2 className="text-2xl font-bold">{product.name}</h2>
-
           <div className="mb-2 mt-1 flex items-center">
             <div className="flex items-center">
               <Star className="mr-1 h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -131,7 +110,6 @@ const ProductPage: NextPage<{ params: { id: string } }> = ({ params }) => {
             </div>
             <span className="text-sm text-gray-500">({product.reviews} avaliações)</span>
           </div>
-
           <div className="mb-4 flex items-center">
             {product.salePrice < product.price ? (
               <>
@@ -148,10 +126,7 @@ const ProductPage: NextPage<{ params: { id: string } }> = ({ params }) => {
               </span>
             )}
           </div>
-
           <p className="mb-4 text-gray-600">{product.description}</p>
-
-          {/* Quantidade e botão de adicionar */}
           <div className="mb-6 flex items-center">
             <div className="mr-4 flex items-center rounded-lg border">
               <Button
@@ -178,21 +153,12 @@ const ProductPage: NextPage<{ params: { id: string } }> = ({ params }) => {
               Adicionar à Sacola
             </Button>
           </div>
-
           <Separator className="my-6" />
-
-          {/* Detalhes em abas */}
           <Tabs defaultValue="description">
             <TabsList className="w-full">
-              <TabsTrigger value="description" className="flex-1">
-                Descrição
-              </TabsTrigger>
-              <TabsTrigger value="ingredients" className="flex-1">
-                Ingredientes
-              </TabsTrigger>
-              <TabsTrigger value="nutrition" className="flex-1">
-                Nutrição
-              </TabsTrigger>
+              <TabsTrigger value="description" className="flex-1">Descrição</TabsTrigger>
+              <TabsTrigger value="ingredients" className="flex-1">Ingredientes</TabsTrigger>
+              <TabsTrigger value="nutrition" className="flex-1">Nutrição</TabsTrigger>
             </TabsList>
             <TabsContent value="description" className="mt-4 text-gray-600">
               <p>{product.longDescription}</p>
