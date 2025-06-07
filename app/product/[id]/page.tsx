@@ -10,7 +10,6 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useCart } from '@/context/cart-context';
 
-// Produto de exemplo
 const product = {
   id: 1,
   name: 'Açaí Tradicional 500ml',

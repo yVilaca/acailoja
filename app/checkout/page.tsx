@@ -1,123 +1,128 @@
-"use client"
+'use client';
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { ChevronLeft, MapPin, Phone, Home, Edit, QrCode, Search, Copy, Clock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/hooks/use-toast"
-import { useCart } from "@/context/cart-context"
-import { useViaCep } from "@/hooks/use-viacep"
-import { ShippingCalculator } from "@/components/shipping-calculator"
+import type React from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, MapPin, Phone, Home, Edit, QrCode, Search, Copy, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { useCart } from '@/context/cart-context';
+import { useViaCep } from '@/hooks/use-viacep';
+import { ShippingCalculator } from '@/components/shipping-calculator';
 
 export default function CheckoutPage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const { subtotal, clearCart } = useCart()
-  const { fetchAddress, loading: cepLoading, error: cepError } = useViaCep()
+  const router = useRouter();
+  const { toast } = useToast();
+  const { subtotal, clearCart } = useCart();
+  const { fetchAddress, loading: cepLoading, error: cepError } = useViaCep();
 
   const [formData, setFormData] = useState({
-    name: "",
-    cpf: "",
-    email: "",
-    zipCode: "",
-    street: "",
-    number: "",
-    complement: "",
-    neighborhood: "",
-    city: "",
-    state: "",
-    phone: "",
-  })
+    name: '',
+    cpf: '',
+    email: '',
+    zipCode: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    phone: '',
+  });
 
-  const [shippingCost, setShippingCost] = useState(0)
-  const [shippingDistance, setShippingDistance] = useState("")
-  const [estimatedTime, setEstimatedTime] = useState("")
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [addressFilled, setAddressFilled] = useState(false)
-  const [lastCep, setLastCep] = useState("")
+  const [shippingCost, setShippingCost] = useState(0);
+  const [shippingDistance, setShippingDistance] = useState('');
+  const [estimatedTime, setEstimatedTime] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [addressFilled, setAddressFilled] = useState(false);
+  const [lastCep, setLastCep] = useState('');
   const [pixData, setPixData] = useState<{
-    pixCode: string
-    qrCodeUrl: string
-    transactionId: string
-    amount: string
-    product: string
-    customer: { name: string; email: string; phone: string; cpf: string }
-    transactionToken: string
-  } | null>(null)
-  const [showPixModal, setShowPixModal] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(900) // 15 minutos
+    pixCode: string;
+    qrCodeUrl: string;
+    transactionId: string;
+    amount: string;
+    product: string;
+    customer: { name: string; email: string; phone: string; cpf: string };
+    transactionToken: string;
+  } | null>(null);
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(900); // 15 minutos
+  const [userLocation, setUserLocation] = useState<{ city: string; state: string } | null>(null);
 
-  const total = subtotal + shippingCost
+  const total = subtotal + shippingCost;
 
+  // Carregar localização do localStorage apenas no cliente
   useEffect(() => {
-    const savedLocation = localStorage.getItem("userLocation")
-    if (savedLocation) {
-      try {
-        const { city, state } = JSON.parse(savedLocation)
-        console.log("Localização de referência:", city, state)
-      } catch (error) {
-        console.error("Erro ao carregar localização:", error)
+    if (typeof window !== 'undefined') {
+      const savedLocation = localStorage.getItem('userLocation');
+      if (savedLocation) {
+        try {
+          const parsed = JSON.parse(savedLocation);
+          setUserLocation({ city: parsed.city, state: parsed.state });
+        } catch (error) {
+          console.error('Erro ao carregar localização:', error);
+        }
       }
     }
-  }, [])
+  }, []);
 
+  // Temporizador para o PIX
   useEffect(() => {
     if (showPixModal && timeLeft > 0) {
       const timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1)
-      }, 1000)
-      return () => clearInterval(timer)
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
     }
-  }, [showPixModal, timeLeft])
+  }, [showPixModal, timeLeft]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    let formattedValue = value
+    const { name, value } = e.target;
+    let formattedValue = value;
 
-    if (name === "phone") {
+    if (name === 'phone') {
       formattedValue = value
-        .replace(/\D/g, "")
-        .replace(/^(\d{2})(\d)/g, "($1) $2")
-        .replace(/(\d)(\d{4})$/, "$1-$2")
-        .slice(0, 15)
-    } else if (name === "zipCode") {
+        .replace(/\D/g, '')
+        .replace(/^(\d{2})(\d)/g, '($1) $2')
+        .replace(/(\d)(\d{4})$/, '$1-$2')
+        .slice(0, 15);
+    } else if (name === 'zipCode') {
       formattedValue = value
-        .replace(/\D/g, "")
-        .replace(/(\d{5})(?=\d)/g, "$1-")
-        .slice(0, 9)
-    } else if (name === "cpf") {
+        .replace(/\D/g, '')
+        .replace(/(\d{5})(?=\d)/g, '$1-')
+        .slice(0, 9);
+    } else if (name === 'cpf') {
       formattedValue = value
-        .replace(/\D/g, "")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
-        .slice(0, 14)
+        .replace(/\D/g, '')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+        .slice(0, 14);
     }
 
-    setFormData((prev) => ({ ...prev, [name]: formattedValue }))
+    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
     if (errors[name]) {
       setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[name]
-        return newErrors
-      })
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
-    if (name === "zipCode" && formattedValue !== lastCep) {
-      setShippingCost(0)
-      setShippingDistance("")
-      setEstimatedTime("")
+    if (name === 'zipCode' && formattedValue !== lastCep) {
+      setShippingCost(0);
+      setShippingDistance('');
+      setEstimatedTime('');
     }
-  }
+  };
 
   const handleCepSearch = async () => {
-    if (!formData.zipCode) return
-    const addressData = await fetchAddress(formData.zipCode)
+    if (!formData.zipCode) return;
+    const addressData = await fetchAddress(formData.zipCode);
     if (addressData) {
       setFormData((prev) => ({
         ...prev,
@@ -125,132 +130,135 @@ export default function CheckoutPage() {
         neighborhood: addressData.neighborhood,
         city: addressData.city,
         state: addressData.state,
-      }))
-      setAddressFilled(true)
-      setLastCep(formData.zipCode)
+      }));
+      setAddressFilled(true);
+      setLastCep(formData.zipCode);
       toast({
-        title: "Endereço encontrado!",
-        description: "Dados preenchidos automaticamente. Informe apenas o número.",
-      })
+        title: 'Endereço encontrado!',
+        description: 'Dados preenchidos automaticamente. Informe apenas o número.',
+      });
     }
-  }
+  };
 
   useEffect(() => {
-    const cleanCep = formData.zipCode.replace(/\D/g, "")
-    if (cleanCep.length === 8 && cleanCep !== lastCep.replace(/\D/g, "")) {
-      handleCepSearch()
+    const cleanCep = formData.zipCode.replace(/\D/g, '');
+    if (cleanCep.length === 8 && cleanCep !== lastCep.replace(/\D/g, '')) {
+      handleCepSearch();
     }
-  }, [formData.zipCode])
+  }, [formData.zipCode]);
 
   const resetLocation = () => {
-    localStorage.removeItem("userLocation")
-    localStorage.removeItem("showProducts")
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith("shipping-")) {
-        localStorage.removeItem(key)
-      }
-    })
-    router.push("/")
-  }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userLocation');
+      localStorage.removeItem('showProducts');
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('shipping-')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    router.push('/');
+  };
 
   const handleShippingCalculated = (cost: number, distance: string, time: string) => {
-    setShippingCost(cost)
-    setShippingDistance(distance)
-    setEstimatedTime(time)
-  }
+    setShippingCost(cost);
+    setShippingDistance(distance);
+    setEstimatedTime(time);
+  };
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {}
-    if (!formData.name.trim()) newErrors.name = "Nome é obrigatório"
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) newErrors.name = 'Nome é obrigatório';
     if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Email inválido"
+      newErrors.email = 'Email inválido';
     }
-    if (!formData.cpf || formData.cpf.replace(/\D/g, "").length !== 11) {
-      newErrors.cpf = "CPF inválido"
+    if (!formData.cpf || formData.cpf.replace(/\D/g, '').length !== 11) {
+      newErrors.cpf = 'CPF inválido';
     }
-    if (!formData.zipCode.trim() || formData.zipCode.replace(/\D/g, "").length !== 8) {
-      newErrors.zipCode = "CEP inválido"
+    if (!formData.zipCode.trim() || formData.zipCode.replace(/\D/g, '').length !== 8) {
+      newErrors.zipCode = 'CEP inválido';
     }
-    if (!formData.street.trim()) newErrors.street = "Rua é obrigatória"
-    if (!formData.number.trim()) newErrors.number = "Número é obrigatório"
-    if (!formData.neighborhood.trim()) newErrors.neighborhood = "Bairro é obrigatório"
-    if (!formData.city.trim()) newErrors.city = "Cidade é obrigatória"
-    if (!formData.state.trim()) newErrors.state = "Estado é obrigatório"
-    if (!formData.phone.trim() || formData.phone.replace(/\D/g, "").length < 10) {
-      newErrors.phone = "Telefone inválido"
+    if (!formData.street.trim()) newErrors.street = 'Rua é obrigatória';
+    if (!formData.number.trim()) newErrors.number = 'Número é obrigatório';
+    if (!formData.neighborhood.trim()) newErrors.neighborhood = 'Bairro é obrigatório';
+    if (!formData.city.trim()) newErrors.city = 'Cidade é obrigatória';
+    if (!formData.state.trim()) newErrors.state = 'Estado é obrigatório';
+    if (!formData.phone.trim() || formData.phone.replace(/\D/g, '').length < 10) {
+      newErrors.phone = 'Telefone inválido';
     }
-    if (shippingCost === 0) newErrors.shipping = "Calcule o frete antes de finalizar"
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    if (shippingCost === 0) newErrors.shipping = 'Calcule o frete antes de finalizar';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!validateForm()) return
-    setIsProcessing(true)
+    e.preventDefault();
+    if (!validateForm()) return;
+    setIsProcessing(true);
     try {
-      const response = await fetch("http://localhost/api/generate-pix.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('http://localhost/api/generate-pix.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
-          cpf: formData.cpf.replace(/\D/g, ""),
+          cpf: formData.cpf.replace(/\D/g, ''),
           email: formData.email,
-          phone: formData.phone.replace(/\D/g, ""),
-          product: "Rei do Açai Delivery",
+          phone: formData.phone.replace(/\D/g, ''),
+          product: 'Rei do Açai Delivery',
           amount: (total * 100).toString(),
         }),
-      })
-      console.log("Raw response:", await response.text()) // Log raw response
-      const data = await response.json()
+      });
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Erro ao gerar PIX")
+        throw new Error(data.error || 'Erro ao gerar PIX');
       }
-      setPixData(data)
-      setShowPixModal(true)
-      localStorage.setItem(
-        "deliveryAddress",
-        JSON.stringify({
-          zipCode: formData.zipCode,
-          street: formData.street,
-          number: formData.number,
-          complement: formData.complement,
-          neighborhood: formData.neighborhood,
-          city: formData.city,
-          state: formData.state,
-          phone: formData.phone,
-          shippingCost,
-          shippingDistance,
-          estimatedTime,
-          pixData: data,
-        })
-      )
+      setPixData(data);
+      setShowPixModal(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'deliveryAddress',
+          JSON.stringify({
+            zipCode: formData.zipCode,
+            street: formData.street,
+            number: formData.number,
+            complement: formData.complement,
+            neighborhood: formData.neighborhood,
+            city: formData.city,
+            state: formData.state,
+            phone: formData.phone,
+            shippingCost,
+            shippingDistance,
+            estimatedTime,
+            pixData: data,
+          })
+        );
+      }
     } catch (error) {
-      console.error("Error:", error)
+      console.error('Error:', error);
       toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao processar pagamento PIX",
-        variant: "destructive",
-      })
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Erro ao processar pagamento PIX',
+        variant: 'destructive',
+      });
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false);
     }
-  }
+  };
 
   const copyPixCode = () => {
-    if (!pixData) return
-    navigator.clipboard.writeText(pixData.pixCode)
+    if (!pixData) return;
+    navigator.clipboard.writeText(pixData.pixCode);
     toast({
-      title: "Código copiado!",
-      description: "O código PIX foi copiado para a área de transferência.",
-    })
-  }
+      title: 'Código copiado!',
+      description: 'O código PIX foi copiado para a área de transferência.',
+    });
+  };
 
   const formatTimeLeft = () => {
-    const minutes = Math.floor(timeLeft / 60)
-    const seconds = timeLeft % 60
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-  }
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   return (
     <main className="flex min-h-screen flex-col bg-white">
@@ -277,7 +285,7 @@ export default function CheckoutPage() {
                   id="name"
                   name="name"
                   placeholder="Seu nome"
-                  className={errors.name ? "border-red-500" : ""}
+                  className={errors.name ? 'border-red-500' : ''}
                   value={formData.name}
                   onChange={handleChange}
                 />
@@ -289,7 +297,7 @@ export default function CheckoutPage() {
                   id="cpf"
                   name="cpf"
                   placeholder="000.000.000-00"
-                  className={errors.cpf ? "border-red-500" : ""}
+                  className={errors.cpf ? 'border-red-500' : ''}
                   value={formData.cpf}
                   onChange={handleChange}
                 />
@@ -301,7 +309,7 @@ export default function CheckoutPage() {
                   id="email"
                   name="email"
                   placeholder="seu@email.com"
-                  className={errors.email ? "border-red-500" : ""}
+                  className={errors.email ? 'border-red-500' : ''}
                   value={formData.email}
                   onChange={handleChange}
                 />
@@ -315,7 +323,7 @@ export default function CheckoutPage() {
                     id="phone"
                     name="phone"
                     placeholder="(00) 00000-0000"
-                    className={`pl-10 ${errors.phone ? "border-red-500" : ""}`}
+                    className={`pl-10 ${errors.phone ? 'border-red-500' : ''}`}
                     value={formData.phone}
                     onChange={handleChange}
                   />
@@ -331,14 +339,13 @@ export default function CheckoutPage() {
               Endereço de Entrega
             </h2>
             <div className="space-y-4">
-              {localStorage.getItem("userLocation") && (
+              {userLocation && (
                 <div className="rounded-lg bg-purple-50 p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-purple-800">Região de entrega</p>
                       <p className="text-sm text-purple-600">
-                        {JSON.parse(localStorage.getItem("userLocation") || "{}").city},{" "}
-                        {JSON.parse(localStorage.getItem("userLocation") || "{}").state}
+                        {userLocation.city}, {userLocation.state}
                       </p>
                     </div>
                     <button
@@ -360,7 +367,7 @@ export default function CheckoutPage() {
                       id="zipCode"
                       name="zipCode"
                       placeholder="00000-000"
-                      className={errors.zipCode ? "border-red-500" : ""}
+                      className={errors.zipCode ? 'border-red-500' : ''}
                       value={formData.zipCode}
                       onChange={handleChange}
                     />
@@ -374,7 +381,7 @@ export default function CheckoutPage() {
                     type="button"
                     variant="outline"
                     onClick={handleCepSearch}
-                    disabled={cepLoading || formData.zipCode.replace(/\D/g, "").length !== 8}
+                    disabled={cepLoading || formData.zipCode.replace(/\D/g, '').length !== 8}
                   >
                     <Search className="h-4 w-4" />
                   </Button>
@@ -391,7 +398,7 @@ export default function CheckoutPage() {
                       id="street"
                       name="street"
                       placeholder="Nome da rua"
-                      className={`pl-10 ${errors.street ? "border-red-500" : ""} ${addressFilled ? "bg-gray-50" : ""}`}
+                      className={`pl-10 ${errors.street ? 'border-red-500' : ''} ${addressFilled ? 'bg-gray-50' : ''}`}
                       value={formData.street}
                       onChange={handleChange}
                       readOnly={addressFilled}
@@ -405,7 +412,7 @@ export default function CheckoutPage() {
                     id="number"
                     name="number"
                     placeholder="123"
-                    className={errors.number ? "border-red-500" : ""}
+                    className={errors.number ? 'border-red-500' : ''}
                     value={formData.number}
                     onChange={handleChange}
                   />
@@ -429,7 +436,7 @@ export default function CheckoutPage() {
                     id="neighborhood"
                     name="neighborhood"
                     placeholder="Seu bairro"
-                    className={`${errors.neighborhood ? "border-red-500" : ""} ${addressFilled ? "bg-gray-50" : ""}`}
+                    className={`${errors.neighborhood ? 'border-red-500' : ''} ${addressFilled ? 'bg-gray-50' : ''}`}
                     value={formData.neighborhood}
                     onChange={handleChange}
                     readOnly={addressFilled}
@@ -442,7 +449,7 @@ export default function CheckoutPage() {
                     id="city"
                     name="city"
                     placeholder="Sua cidade"
-                    className={`${errors.city ? "border-red-500" : ""} ${addressFilled ? "bg-gray-50" : ""}`}
+                    className={`${errors.city ? 'border-red-500' : ''} ${addressFilled ? 'bg-gray-50' : ''}`}
                     value={formData.city}
                     onChange={handleChange}
                     readOnly={addressFilled}
@@ -456,7 +463,7 @@ export default function CheckoutPage() {
                   id="state"
                   name="state"
                   placeholder="UF"
-                  className={`${errors.state ? "border-red-500" : ""} ${addressFilled ? "bg-gray-50" : ""}`}
+                  className={`${errors.state ? 'border-red-500' : ''} ${addressFilled ? 'bg-gray-50' : ''}`}
                   value={formData.state}
                   onChange={handleChange}
                   readOnly={addressFilled}
@@ -484,20 +491,20 @@ export default function CheckoutPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
-                <span>R$ {subtotal.toFixed(2).replace(".", ",")}</span>
+                <span>R$ {subtotal.toFixed(2).replace('.', ',')}</span>
               </div>
               {shippingCost > 0 && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">
                     Frete ({shippingDistance} - {estimatedTime})
                   </span>
-                  <span>R$ {shippingCost.toFixed(2).replace(".", ",")}</span>
+                  <span>R$ {shippingCost.toFixed(2).replace('.', ',')}</span>
                 </div>
               )}
               <Separator className="my-2" />
               <div className="flex justify-between font-bold">
                 <span>Total</span>
-                <span className="text-lg text-purple-700">R$ {total.toFixed(2).replace(".", ",")}</span>
+                <span className="text-lg text-purple-700">R$ {total.toFixed(2).replace('.', ',')}</span>
               </div>
             </div>
           </div>
@@ -513,7 +520,7 @@ export default function CheckoutPage() {
                 Processando PIX...
               </span>
             ) : (
-              "Finalizar Pagamento via PIX"
+              'Finalizar Pagamento via PIX'
             )}
           </Button>
 
@@ -558,15 +565,15 @@ export default function CheckoutPage() {
                 <div className="flex items-center justify-center bg-yellow-100 p-3 rounded-lg mb-4">
                   <Clock className="h-5 w-5 text-yellow-600 mr-2" />
                   <span className="font-medium">
-                    {timeLeft > 0 ? `${formatTimeLeft()} para pagar` : "Expirado"}
+                    {timeLeft > 0 ? `${formatTimeLeft()} para pagar` : 'Expirado'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setShowPixModal(false)
-                      router.push("/order-confirmation")
+                      setShowPixModal(false);
+                      router.push('/order-confirmation');
                     }}
                   >
                     Continuar
@@ -584,5 +591,5 @@ export default function CheckoutPage() {
         )}
       </div>
     </main>
-  )
+  );
 }

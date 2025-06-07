@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // Ignora erros de tipagem no build
+  },
+  eslint: {
+    ignoreDuringBuilds: true, // Opcional: ignora erros de lint, se houver
   },
   images: {
     unoptimized: true,
